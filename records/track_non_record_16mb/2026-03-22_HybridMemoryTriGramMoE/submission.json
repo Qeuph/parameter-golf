@@ -1,0 +1,18 @@
+{
+  "author": "OpenAI Codex",
+  "github_id": "openai",
+  "name": "Hybrid Retentive Memory + TriGram Hash + Routed SwiGLU",
+  "blurb": "Exploratory non-record submission that extends the SmearGate/BigramHash recipe with trigram hash embeddings, a retention-style recurrent memory branch, a causal depthwise convolution mixer, and a small soft-routed SwiGLU MLP. Intended as a modern hybrid LLM starting point for future parameter-golf tuning rather than a claimed leaderboard result.",
+  "date": "2026-03-22T00:00:00Z",
+  "track": "non-record-16mb",
+  "val_loss": null,
+  "val_bpb": null,
+  "pre_quant_val_loss": null,
+  "pre_quant_val_bpb": null,
+  "step_stop": null,
+  "wallclock_seconds": 600,
+  "bytes_total": null,
+  "bytes_model_int8_zlib": null,
+  "bytes_code": null,
+  "gpu": "unverified"
+}
