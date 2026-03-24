@@ -102,9 +102,14 @@ class Hyperparameters:
 # MUON OPTIMIZER
 # -----------------------------
 
+
+def preferred_cuda_dtype() -> torch.dtype:
+    return torch.bfloat16 if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else torch.float16
+
+
 def zeropower_via_newtonschulz5(G: Tensor, steps: int = 10, eps: float = 1e-7) -> Tensor:
     a, b, c = (3.4445, -4.7750, 2.0315)
-    X = G.bfloat16()
+    X = G.to(dtype=preferred_cuda_dtype() if G.is_cuda else torch.float32)
     X /= X.norm() + eps
     transposed = G.size(0) > G.size(1)
     if transposed:
@@ -143,7 +148,7 @@ class Muon(torch.optim.Optimizer):
             nesterov = group["nesterov"]
 
             total_params = sum(int(p.numel()) for p in params)
-            updates_flat = torch.zeros(total_params, device=params[0].device, dtype=torch.bfloat16)
+            updates_flat = torch.zeros(total_params, device=params[0].device, dtype=preferred_cuda_dtype() if params[0].is_cuda else torch.float32)
 
             curr = 0
             for i, p in enumerate(params):
@@ -252,7 +257,7 @@ def eval_val(
             local = val_tokens[raw_start:raw_end].to(device=device, dtype=torch.int64, non_blocking=True)
             x = local[:-1].reshape(-1, args.train_seq_len)
             y = local[1:].reshape(-1, args.train_seq_len)
-            with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=device.type == "cuda"):
+            with torch.autocast(device_type="cuda", dtype=preferred_cuda_dtype(), enabled=device.type == "cuda"):
                 batch_loss = model(x, y).detach()
             batch_token_count = float(y.numel())
             val_loss_sum += batch_loss.to(torch.float64) * batch_token_count
@@ -883,7 +888,7 @@ def eval_val_sliding(
                 chunk = val_tokens[ws:end + 1].to(dtype=torch.int64, device=device)
                 x_batch[i, :wlen] = chunk[:-1]
                 y_batch[i, :wlen] = chunk[1:]
-            with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=device.type == "cuda"):
+            with torch.autocast(device_type="cuda", dtype=preferred_cuda_dtype(), enabled=device.type == "cuda"):
                 logits = base_model.forward_logits(x_batch)
             nll = F.cross_entropy(
                 logits.reshape(-1, logits.size(-1)).float(),
@@ -960,10 +965,12 @@ def main() -> None:
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.allow_tf32 = True
         from torch.backends.cuda import enable_cudnn_sdp, enable_flash_sdp, enable_math_sdp, enable_mem_efficient_sdp
+        major, minor = torch.cuda.get_device_capability(device)
+        flash_ok = (major, minor) >= (8, 0)
         enable_cudnn_sdp(False)
-        enable_flash_sdp(True)
-        enable_mem_efficient_sdp(False)
-        enable_math_sdp(False)
+        enable_flash_sdp(flash_ok)
+        enable_mem_efficient_sdp(not flash_ok)
+        enable_math_sdp(not flash_ok)
 
     logfile = None
     if master_process:
@@ -1016,7 +1023,7 @@ def main() -> None:
     log0(f"val_loader:shards pattern={args.val_files} tokens:{val_tokens.numel() - 1}")
 
     # MODEL + OPTIMIZER SETUP
-    model_dtype = torch.bfloat16 if use_cuda else torch.float32
+    model_dtype = preferred_cuda_dtype() if use_cuda else torch.float32
 
     base_model = GPT(
         vocab_size=args.vocab_size,
@@ -1151,7 +1158,7 @@ def main() -> None:
                 if distributed:
                     model.require_backward_grad_sync = micro_step == grad_accum_steps - 1
                 x, y = train_loader.next_batch(args.train_batch_tokens, args.train_seq_len, grad_accum_steps)
-                with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=use_cuda):
+                with torch.autocast(device_type="cuda", dtype=preferred_cuda_dtype(), enabled=use_cuda):
                     warmup_loss = model(x, y)
                 (warmup_loss * grad_scale).backward()
             for opt in optimizers:
@@ -1214,7 +1221,7 @@ def main() -> None:
             if distributed:
                 model.require_backward_grad_sync = micro_step == grad_accum_steps - 1
             x, y = train_loader.next_batch(args.train_batch_tokens, args.train_seq_len, grad_accum_steps)
-            with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=use_cuda):
+            with torch.autocast(device_type="cuda", dtype=preferred_cuda_dtype(), enabled=use_cuda):
                 loss = model(x, y)
             train_loss += loss.detach()
             (loss * grad_scale).backward()
@@ -1350,4 +1357,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
