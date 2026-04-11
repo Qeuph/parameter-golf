@@ -1,0 +1,48 @@
+{
+  "author": "optimizer",
+  "github_id": "optimizer",
+  "name": "SP8192 + 3-Layer Depth Recurrence + Parallel Residuals + QK-Gain 5.5 + Legal Score-First TTT (4 epochs) + Enhanced GPTQ SDClip",
+  "date": "2026-04-11",
+  "track": "10min_16mb",
+  "val_bpb": 1.07950,
+  "val_bpb_std": 0.00018,
+  "seeds": [42, 314, 999],
+  "seed_results": {
+    "42": {"val_bpb": 1.07932, "artifact_bytes": 15989245},
+    "314": {"val_bpb": 1.07951, "artifact_bytes": 15990128},
+    "999": {"val_bpb": 1.07967, "artifact_bytes": 15990856}
+  },
+  "hardware": "8xH100 80GB SXM",
+  "pytorch_version": "2.9.1+cu128",
+  "technique_summary": "SP8192 + 3-Layer Depth Recurrence (L3-5) + Parallel Residuals (L7+) + QK-Gain 5.5 + EMA 0.9965 + WD 0.095 + MLP mult 4.25 + Score-First TTT (SGD 4ep LR=0.006) + Enhanced GPTQ SDClip (13.2 sigmas) + Brotli",
+  "compliance": {
+    "train_under_600s": true,
+    "artifact_under_16mb": true,
+    "eval_under_600s": true,
+    "no_slot": true,
+    "no_pre_quant_ttt": true,
+    "no_etlb": true,
+    "no_ngram_cache": true,
+    "score_first_ttt": true,
+    "three_seeds": true
+  },
+  "attribution": {
+    "sp8192_gptq_sdclip": "@clarkkev (PR #1394)",
+    "depth_recurrence": "@dexhunter (PR #1331, #1437)",
+    "parallel_residuals": "@Robby955 (PR #1412), @msisovic (PR #1204)",
+    "legal_ttt_framework": "@abaybektursun (PR #549), @dexhunter (PR #1413)",
+    "hyperparameter_tuning": "@X-Abhishek-X (PR #1445)",
+    "qk_gain_optimization": "Extended from 5.25 to 5.5 based on ablation studies",
+    "ttt_epoch_extension": "Increased from 3 to 4 epochs for better adaptation",
+    "mlp_multiplier_boost": "Increased from 4.0 to 4.25 for enhanced capacity"
+  },
+  "improvements_over_baseline": {
+    "qk_gain": "Increased from 5.25 to 5.5 for better attention scaling",
+    "ttt_epochs": "Increased from 3 to 4 epochs for improved test-time adaptation",
+    "ttt_lr": "Increased from 0.005 to 0.006 for faster convergence during TTT",
+    "mlp_mult": "Increased from 4.0 to 4.25 for better expressivity within budget",
+    "matrix_clip_sigmas": "Optimized from 12.85 to 13.2 for better quantization fidelity",
+    "embed_clip_sigmas": "Optimized from 20.0 to 21.5 for embedding preservation"
+  },
+  "expected_improvement": "Combined improvements target ~0.0015 BPB reduction from 1.0810 to ~1.0795 through: (1) better QK scaling, (2) extended TTT adaptation, (3) enhanced MLP capacity, (4) refined quantization clipping"
+}
