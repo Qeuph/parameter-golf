@@ -1,11 +1,40 @@
-data/tokenizers
+```
+# Compiled and build artifacts
+*.pyc
 __pycache__/
-.DS_Store
-modded-nanogpt/
-modded-nanogpt
-data/datasets
-data/manifest.json
-data/docs_selected.jsonl
+*.o
+*.obj
+dist/
+build/
+target/
+
+# Dependencies
+.venv/
+venv/
+node_modules/
 .mypy_cache/
-.venv
-logs/
+.pytest_cache/
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Editors
+.vscode/
+.idea/
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# System files
+.DS_Store
+Thumbs.db
+```
